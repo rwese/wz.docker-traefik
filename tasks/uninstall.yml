@@ -1,0 +1,21 @@
+---
+- name: Delete proxy network
+  become: yes
+  docker_network:
+    name: "{{ docker_compose_reverse_proxy__network_name }}"
+    state: absent
+
+- name: Stop container stack
+  become: yes
+  community.docker.docker_compose:
+    project_src: "{{ docker_compose_reverse_proxy__target_path }}"
+    state: absent
+    remove_orphans: yes
+    remove_volumes: "{{ docker_compose_reverse_proxy__remove_volumes }}"
+
+- name: Remove directory
+  become: yes
+  file:
+    path: "{{ docker_compose_reverse_proxy__target_path }}"
+    state: absent
+  when: docker_compose_reverse_proxy__remove_volumes

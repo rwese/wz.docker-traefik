@@ -1,0 +1,69 @@
+---
+- name: Create target path web
+  become: yes
+  file:
+    dest: '{{ docker_compose_reverse_proxy__target_path }}/data/conf'
+    state: directory
+    recurse: yes
+    mode: 0770
+
+- name: Check if containers are running
+  become: yes
+  community.docker.docker_container_info:
+    name: '{{ docker_compose_reverse_proxy__project_name }}_traefik_1'
+  register: docker_compose_running
+
+- name: files
+  template:
+    src: '{{ item.src }}'
+    dest: '{{ docker_compose_reverse_proxy__target_path }}/{{ item.dst }}'
+    owner: root
+    group: root
+    mode: 0640
+  with_items:
+    - src: 'docker-compose.yml.j2'
+      dst: 'docker-compose.yml'
+    - src: 'data/traefik.yml.j2'
+      dst: 'data/traefik.yml'
+    - src: 'data/conf/api.yml.j2'
+      dst: 'data/conf/api.yml'
+    - src: 'data/conf/tls.yml.j2'
+      dst: 'data/conf/tls.yml'
+    - src: 'data/conf/middlewares.yml.j2'
+      dst: 'data/conf/middlewares.yml'
+  register: changed_files
+
+- name: copy kubernetes provider kubectl
+  template:
+    src: '{{ docker_compose_reverse_proxy__provider_kubernetes_ingress_kubeconf }}'
+    dest: '{{ docker_compose_reverse_proxy__target_path }}/data/conf/kubeconf'
+    owner: root
+    group: root
+    mode: 0640
+  when: docker_compose_reverse_proxy__provider_kubernetes_ingress_enabled
+  register: changed_kubeconf_files
+
+- name: Create proxy network
+  docker_network:
+    name: '{{ docker_compose_reverse_proxy__network_name }}'
+
+- name: copy extra files
+  copy:
+    src: '{{ item.src }}'
+    dest: '{{ docker_compose_reverse_proxy__target_path }}/{{ item.dst }}'
+    owner: root
+    group: root
+    mode: 0640
+  with_items: '{{ docker_compose_reverse_proxy__extra_files | default([], true)}}'
+  register: changed_extras
+
+- name: Recreate container stack
+  become: yes
+  community.docker.docker_compose:
+    project_src: '{{ docker_compose_reverse_proxy__target_path }}'
+    state: "{{ 'present' if docker_compose_reverse_proxy__state == 'present' else 'absent' }}"
+    recreate: always
+    build: '{{ docker_compose_reverse_proxy__build_enabled }}'
+    pull: '{{ docker_compose_reverse_proxy__pull_enabled }}'
+    remove_orphans: yes
+  when: changed_kubeconf_files.changed or changed_extras.changed or changed_files.changed or docker_compose_running.exists == false

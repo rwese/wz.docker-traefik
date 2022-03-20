@@ -1,0 +1,60 @@
+defaultEntryPoints:
+  - websecure
+
+global:
+  sendAnonymousUsage: {{ docker_compose_reverse_proxy__send_anonymous_usage | default('false') }}
+
+api:
+  dashboard: true
+  insecure: false
+
+providers:
+  docker:
+    exposedByDefault: {{ docker_compose_reverse_proxy__provider_docker_exposed_default | ternary('true', 'false') }}
+    network: {{ docker_compose_reverse_proxy__network_name }}
+{% if docker_compose_reverse_proxy__provider_kubernetes_ingress_enabled %}
+  kubernetesIngress:
+    ingressClass: "traefik"
+  kubernetesCRD:
+    ingressClass: "traefik"
+    endpoint: "http://localhost:8080"
+{% endif %}
+  file:
+      directory: /etc/traefik/conf/
+      watch: true
+
+log:
+  level: "{{ docker_compose_reverse_proxy__log_level | default('INFO') }}"
+
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+  websecure:
+    address: ":443"
+    http:
+      middlewares:
+        - secure-headers@file
+      tls:
+        options: default
+        certResolver: le
+    forwardedHeaders:
+      trustedIPs:
+       - "127.0.0.1/32"
+       - "10.0.0.0/8"
+       - "192.168.0.0/16"
+       - "172.16.0.0/12"
+
+certificatesResolvers:
+  le:
+    acme:
+      email: "{{ docker_compose_reverse_proxy__cert_admin_email }}"
+      storage: /etc/traefik/acme/acme.json
+{% if docker_compose_reverse_proxy__ca_server | default(false) %}
+      caServer: "{{ docker_compose_reverse_proxy__ca_server }}"
+{% endif %}
+      httpChallenge:
+        entryPoint: web

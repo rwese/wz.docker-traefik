@@ -1,0 +1,14 @@
+http:
+  routers:
+    traefik-api:
+      rule: 'Host(`{{ docker_compose_reverse_proxy__api_domain }}`)'
+      service: api@internal
+      middlewares:
+        - auth
+      tls:
+        certresolver: le
+  middlewares:
+    auth:
+      basicAuth:
+        users:
+          - '{{ docker_compose_reverse_proxy__admin_account }}'

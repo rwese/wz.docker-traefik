@@ -1,0 +1,29 @@
+version: "3.3"
+
+services:
+  traefik:
+    image: "{{ docker_compose_reverse_proxy__image }}:{{ docker_compose_reverse_proxy__image_version }}"
+    container_name: "{{ docker_compose_reverse_proxy__container_name }}"
+    restart: unless-stopped
+    labels:
+      - "api=true"
+      - "providers.file.filename=/traefik/traefik.yaml"
+    networks:
+      - proxy
+{% if docker_compose_reverse_proxy__provider_kubernetes_ingress_enabled %}
+    environment:
+      - KUBECONFIG=/etc/traefik/conf/kubeconf
+{% endif %}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./acme:/etc/traefik/acme"
+      - "./data/traefik.yml:/etc/traefik/traefik.yml"
+      - "./data/conf:/etc/traefik/conf"
+
+networks:
+  proxy:
+    external:
+      name: "{{ docker_compose_reverse_proxy__network_name }}"

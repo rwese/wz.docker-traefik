@@ -1,0 +1,22 @@
+---
+docker_compose_reverse_proxy__image: 'traefik'
+docker_compose_reverse_proxy__image_version: 'v2.6'
+docker_compose_reverse_proxy__container_name: 'traefik'
+docker_compose_reverse_proxy__enable_image_updater: true
+docker_compose_reverse_proxy__project_name: 'docker-traefik'
+docker_compose_reverse_proxy__network_name: 'proxy'
+# docker_compose_reverse_proxy__cert_admin_email: ""
+docker_compose_reverse_proxy__pull_enabled: false
+docker_compose_reverse_proxy__build_enabled: false
+docker_compose_reverse_proxy__target_path: /opt/docker_traefik
+docker_compose_reverse_proxy__extra_files:
+  []
+  # - src: ../files/file.txt
+  #   dst: /etc/traefik/data/file.txt
+docker_compose_reverse_proxy__state: 'present'
+docker_compose_reverse_proxy__remove_volumes: false
+docker_compose_reverse_proxy__tls_default_min_version: VersionTLS12
+docker_compose_reverse_proxy__tls_mintls13_min_version: VersionTLS13
+docker_compose_reverse_proxy__provider_docker_exposed_default: false
+docker_compose_reverse_proxy__provider_kubernetes_ingress_enabled: false
+docker_compose_reverse_proxy__provider_kubernetes_ingress_kubeconf: ''

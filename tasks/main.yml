@@ -1,0 +1,22 @@
+---
+- name: Check if already installed
+  stat:
+    path: "{{ docker_compose_reverse_proxy__target_path }}"
+  register: directory_exists
+
+- include_tasks: install.yml
+  when: (docker_compose_reverse_proxy__state != 'absent') and (not directory_exists.stat.exists)
+
+- include_tasks: update.yml
+  when: (docker_compose_reverse_proxy__state != 'absent') and docker_compose_reverse_proxy__enabled
+
+- include_tasks: uninstall.yml
+  when: (directory_exists.stat.exists) and (docker_compose_reverse_proxy__state == 'absent')
+
+- name: trigger docker-compose-updater role
+  include_role:
+    name: wz.docker-compose-updater
+  vars:
+    docker_compose_updater__project_name: "{{ docker_compose_reverse_proxy__project_name }}"
+    docker_compose_updater__target_path: "{{ docker_compose_reverse_proxy__target_path }}"
+    docker_compose_updater__state: "{{ docker_compose_reverse_proxy__state|default('present') }}"
